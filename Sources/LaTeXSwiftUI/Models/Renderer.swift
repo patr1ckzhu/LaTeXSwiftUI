@@ -364,7 +364,42 @@ extension Renderer {
     guard let mathjax = MathJax.svgRenderer else {
       return nil
     }
-    
+
+    // DOWNSTREAM PATCH (noctext-cjk): tell MathJax to emit `\text{...}` content
+    // in a CJK font. With defaults (`mtextFont: ""`), CJK chars inside \text{}
+    // trigger MathJax's `unknownFamily` fallback which produces
+    // `<text font-family="serif">注入</text>` — SwiftDraw then runs
+    // CTFontCreateWithName("serif", ...) which can't resolve the CSS generic
+    // "serif" to a CJK-capable PostScript font, so Core Text substitutes
+    // garbled Greek / IPA-looking glyphs (e.g. ω, γ). Setting mtextFont
+    // explicitly emits `<g style="font-family: Songti SC;"><text>注入</text></g>`
+    // which SwiftDraw parses correctly.
+    //
+    // "Songti SC" chosen over "PingFang SC" / "Heiti SC" because it's a serif
+    // Chinese face, matching MathJax's serif Latin math (Computer Modern style)
+    // — the traditional convention in Chinese academic typography. Shipped on
+    // iOS 9+ / macOS 10.11+.
+    //
+    // NOTE: this option only travels across the JSExport bridge via a matching
+    // patch in `patr1ckzhu/MathJaxSwift` branch `v3.4.0-noctext-cjk` (plain-object
+    // flattening in mjn/converters/svg.js). Without that, `mtextFont` falls
+    // through to MathJax's default empty string regardless of what we set here.
+    // iOS ships Helvetica as default but NOT Songti SC — that family is
+    // macOS-only (Apple property, can't be redistributed). Any Songti name
+    // passed to CTFontCreateWithName on iOS falls back to Helvetica, which
+    // doesn't cover CJK, so Core Text substitutes garbled Greek / IPA
+    // glyphs (the "ω" bug). The host app (Noctext) bundles Source Han Serif
+    // CN VF (Adobe/Google open source, SIL OFL 1.1) via runtime
+    // CTFontManagerRegisterFontsForURL, and we use its PS name here.
+    //
+    // Source Han Serif is the canonical open-source 宋/明体系 serif CJK —
+    // same visual class as Songti SC, matches MathJax's serif Latin math
+    // (Computer Modern), and works on both iOS and macOS identically.
+    let svgOptions = SVGOutputProcessorOptions(
+      mtextInheritFont: false,
+      mtextFont: "SourceHanSerifCNVF-Regular"
+    )
+
     // Perform the TeX -> SVG conversion
     var conversionError: Error?
     let svgString = mathjax.tex2svg(
@@ -372,6 +407,7 @@ extension Renderer {
       styles: false,
       conversionOptions: component.conversionOptions,
       inputOptions: texOptions,
+      outputOptions: svgOptions,
       error: &conversionError)
     
     // Check for a conversion error
