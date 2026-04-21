@@ -15,7 +15,13 @@ let package = Package(
       targets: ["LaTeXSwiftUI"]),
   ],
   dependencies: [
-     .package(url: "https://github.com/colinc86/MathJaxSwift", from: "3.4.0"),
+     // DOWNSTREAM PATCH (noctext-cjk): point at our MathJaxSwift fork whose
+     // JSExport flattening patch makes svgOptions.mtextFont actually reach
+     // MathJax. Keeping upstream's URL here produces a SwiftPM identity
+     // collision ("mathjaxswift" resolves to two locations) when the host
+     // app also adds patr1ckzhu/MathJaxSwift directly — which it does, to
+     // pin the exact commit it needs.
+     .package(url: "https://github.com/patr1ckzhu/MathJaxSwift", revision: "94606d4338e87aa1631c821dad15e91f1cff1617"),
      .package(url: "https://github.com/swhitty/SwiftDraw", from: "0.20.1"),
      .package(url: "https://github.com/Kitura/swift-html-entities", from: "4.0.1")
   ],
