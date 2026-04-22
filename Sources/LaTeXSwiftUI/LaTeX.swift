@@ -291,23 +291,6 @@ extension LaTeX {
   }
 #endif
 
-  /// Sets the view's emphasis font overrides for Markdown `**bold**` /
-  /// `*italic*` / `***bold italic***` spans in non-math text.
-  ///
-  /// Use this when the primary font has a `cascadeList` (for example a
-  /// CJK fallback chain) that SwiftUI's default symbolic-trait bold/italic
-  /// derivation would otherwise strip. Any `EmphasisFonts` field left as
-  /// `nil` falls back to SwiftUI's default derivation for that emphasis
-  /// state, preserving full backward compatibility when no value is set.
-  ///
-  /// - Parameter fonts: The emphasis font bundle to inject into the
-  ///   environment. Pass `nil` (or omit the modifier) to use the default
-  ///   SwiftUI derivation.
-  /// - Returns: A view configured to honor the supplied emphasis fonts.
-  public func emphasisFonts(_ fonts: EmphasisFonts?) -> some View {
-    environment(\.emphasisFonts, fonts)
-  }
-
 }
 
 // MARK: Private methods

@@ -169,12 +169,34 @@ public extension View {
   func ignoreStringFormatting(_ ignore: Bool = true) -> some View {
     environment(\.ignoreStringFormatting, ignore)
   }
-  
+
+  /// Sets the emphasis font overrides used when the underlying `LaTeX` view
+  /// renders Markdown `**bold**` / `*italic*` / `***bold italic***` spans
+  /// in non-math text.
+  ///
+  /// Use this when the primary font has a `cascadeList` (for example a
+  /// CJK fallback chain) that SwiftUI's default symbolic-trait bold/italic
+  /// derivation would otherwise strip. Any ``LaTeX/EmphasisFonts`` field
+  /// left as `nil` falls back to SwiftUI's default derivation for that
+  /// emphasis state, preserving full backward compatibility when no
+  /// value is set.
+  ///
+  /// Declared on `View` so it composes freely after other LaTeXSwiftUI
+  /// modifiers that return `some View` (e.g. `.font(UIFont)`).
+  ///
+  /// - Parameter fonts: The emphasis font bundle to inject into the
+  ///   environment. Pass `nil` (or omit the modifier) to use the default
+  ///   SwiftUI derivation.
+  /// - Returns: A view configured to honor the supplied emphasis fonts.
+  func emphasisFonts(_ fonts: LaTeX.EmphasisFonts?) -> some View {
+    environment(\.emphasisFonts, fonts)
+  }
+
   /// Sets the view's UI/NSFont font, if any.
   /// - Parameter font: The UI/NSFont font to use.
   /// - Returns: A view that uses the provided font.
   internal func platformFont(_ font: _Font? = nil) -> some View {
     environment(\.platformFont, font)
   }
-  
+
 }

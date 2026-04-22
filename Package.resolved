@@ -3,10 +3,9 @@
     {
       "identity" : "mathjaxswift",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/colinc86/MathJaxSwift",
+      "location" : "https://github.com/patr1ckzhu/MathJaxSwift",
       "state" : {
-        "revision" : "e23d6eab941da699ac4a60fb0e60f3ba5c937459",
-        "version" : "3.4.0"
+        "revision" : "94606d4338e87aa1631c821dad15e91f1cff1617"
       }
     },
     {
