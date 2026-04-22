@@ -200,6 +200,11 @@ extension Component {
   ///   - isInEquationBlock: Whether this block is in an equation block.
   ///   - ignoreStringFormatting: Whether string formatting such as markdown
   ///     should be ignored or rendered.
+  ///   - emphasisFonts: Optional explicit fonts used to render `**bold**` /
+  ///     `*italic*` / `***bold italic***` runs while preserving their
+  ///     `cascadeList` attribute (which SwiftUI's default symbolic-trait
+  ///     derivation would otherwise strip). Pass `nil` to keep the default
+  ///     SwiftUI behavior.
   /// - Returns: A text view.
   func convertToText(
     xHeight: CGFloat,
@@ -208,7 +213,8 @@ extension Component {
     errorMode: LaTeX.ErrorMode,
     blockRenderingMode: LaTeX.BlockMode,
     isInEquationBlock: Bool,
-    ignoreStringFormatting: Bool
+    ignoreStringFormatting: Bool,
+    emphasisFonts: LaTeX.EmphasisFonts? = nil
   ) -> Text {
     // Get the component's text
     let text: Text
@@ -235,38 +241,83 @@ extension Component {
       }
     }
     else if blockRenderingMode == .alwaysInline {
-      text = formattedText(input: originalTextTrimmingNewlines, ignoreStringFormatting: ignoreStringFormatting)
+      text = formattedText(input: originalTextTrimmingNewlines, ignoreStringFormatting: ignoreStringFormatting, emphasisFonts: emphasisFonts)
     }
     else {
-      text = formattedText(input: originalText, ignoreStringFormatting: ignoreStringFormatting)
+      text = formattedText(input: originalText, ignoreStringFormatting: ignoreStringFormatting, emphasisFonts: emphasisFonts)
     }
-    
+
     return text
   }
-  
+
   /// Formats the input text and returns a text view.
   ///
   /// - Parameters:
   ///   - input: The plaintext to format.
   ///   - ignoreStringFormatting: Whether the method should ignore formatting.
+  ///   - emphasisFonts: Optional explicit fonts for emphasis runs. See
+  ///     ``LaTeX/EmphasisFonts`` for the motivation. When non-`nil`, each
+  ///     `.stronglyEmphasized` / `.emphasized` run has its `font` attribute
+  ///     explicitly overridden to preserve `cascadeList`, and its
+  ///     `inlinePresentationIntent` cleared so SwiftUI does not re-derive
+  ///     on top of the override. `.code` runs are left alone (they already
+  ///     carry a monospaced font set upstream).
   /// - Returns: A text view.
-  func formattedText(input: String, ignoreStringFormatting: Bool) -> Text {
+  func formattedText(input: String, ignoreStringFormatting: Bool, emphasisFonts: LaTeX.EmphasisFonts? = nil) -> Text {
     if ignoreStringFormatting {
       return Text(input)
     }
     else {
       do {
-        return Text(try AttributedString(
+        var attributed = try AttributedString(
           markdown: input,
           options: AttributedString.MarkdownParsingOptions(
             allowsExtendedAttributes: true,
             interpretedSyntax: .inlineOnlyPreservingWhitespace,
-            failurePolicy: .returnPartiallyParsedIfPossible)))
+            failurePolicy: .returnPartiallyParsedIfPossible))
+        if let fonts = emphasisFonts {
+          applyEmphasisCascade(to: &attributed, fonts: fonts)
+        }
+        return Text(attributed)
       }
       catch {
         return Text(input)
       }
     }
   }
-  
+
+  /// Apply `EmphasisFonts` overrides to the attributed string in place.
+  ///
+  /// Walks the `inlinePresentationIntent` runs and, for each bold / italic /
+  /// bold-italic run with a non-`nil` override in `fonts`, sets the run's
+  /// `font` attribute to the supplied `UIFont` / `NSFont` (which typically
+  /// carries a `cascadeList` the caller wants preserved) and clears the
+  /// corresponding intent flags so SwiftUI's `Text` rendering doesn't
+  /// re-derive a trait-based descriptor on top of our override.
+  ///
+  /// Skips `.code` runs entirely — a monospaced font has already been set
+  /// by upstream code, and clobbering would break inline code inside a
+  /// bold/italic span.
+  private func applyEmphasisCascade(to attributed: inout AttributedString, fonts: LaTeX.EmphasisFonts) {
+    for run in attributed.runs {
+      guard let intent = run.inlinePresentationIntent,
+            !intent.contains(.code) else { continue }
+      let isBold = intent.contains(.stronglyEmphasized)
+      let isItalic = intent.contains(.emphasized)
+      let override: LaTeX.EmphasisFonts.Font?
+      switch (isBold, isItalic) {
+      case (true, true):   override = fonts.boldItalic
+      case (true, false):  override = fonts.bold
+      case (false, true):  override = fonts.italic
+      case (false, false): override = nil
+      }
+      guard let override = override else { continue }
+      attributed[run.range].font = override
+      var remaining = intent
+      remaining.remove(.stronglyEmphasized)
+      remaining.remove(.emphasized)
+      attributed[run.range].inlinePresentationIntent = remaining.isEmpty ? nil : remaining
+    }
+  }
+
 }

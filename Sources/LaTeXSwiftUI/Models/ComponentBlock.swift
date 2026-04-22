@@ -67,6 +67,10 @@ extension ComponentBlock {
   ///   - blockRenderingMode: The block rendering mode.
   ///   - ignoreStringFormatting: Whether string formatting such as markdown
   ///     should be ignored or rendered.
+  ///   - emphasisFonts: Optional explicit fonts for `**bold**` / `*italic*`
+  ///     / `***bold italic***` runs in non-math text. See
+  ///     ``LaTeX/EmphasisFonts`` and ``LaTeX/emphasisFonts(_:)`` for the
+  ///     cascade-preservation motivation.
   /// - Returns: A `Text` view.
   @MainActor func toText(
     xHeight: CGFloat,
@@ -74,7 +78,8 @@ extension ComponentBlock {
     renderingMode: Image.TemplateRenderingMode,
     errorMode: LaTeX.ErrorMode,
     blockRenderingMode: LaTeX.BlockMode,
-    ignoreStringFormatting: Bool
+    ignoreStringFormatting: Bool,
+    emphasisFonts: LaTeX.EmphasisFonts? = nil
   ) -> Text {
     components.enumerated().map { i, component in
       return component.convertToText(
@@ -84,8 +89,9 @@ extension ComponentBlock {
         errorMode: errorMode,
         blockRenderingMode: blockRenderingMode,
         isInEquationBlock: isEquationBlock,
-        ignoreStringFormatting: ignoreStringFormatting)
+        ignoreStringFormatting: ignoreStringFormatting,
+        emphasisFonts: emphasisFonts)
     }.reduce(Text(""), +)
   }
-  
+
 }

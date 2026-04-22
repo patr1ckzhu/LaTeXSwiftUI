@@ -82,6 +82,10 @@ private struct PlatformFontKey: EnvironmentKey {
   static let defaultValue: _Font? = nil
 }
 
+private struct EmphasisFontsKey: EnvironmentKey {
+  static let defaultValue: LaTeX.EmphasisFonts? = nil
+}
+
 extension EnvironmentValues {
   
   /// The image rendering mode of this environment.
@@ -167,5 +171,15 @@ extension EnvironmentValues {
     get { self[PlatformFontKey.self] }
     set { self[PlatformFontKey.self] = newValue }
   }
-  
+
+  /// Optional emphasis font overrides used when rendering Markdown
+  /// `**bold**` / `*italic*` / `***bold italic***` spans in non-math
+  /// text. See ``LaTeX/EmphasisFonts`` and ``LaTeX/emphasisFonts(_:)``
+  /// for the motivation (preserving `cascadeList` across bold/italic
+  /// derivation).
+  var emphasisFonts: LaTeX.EmphasisFonts? {
+    get { self[EmphasisFontsKey.self] }
+    set { self[EmphasisFontsKey.self] = newValue }
+  }
+
 }

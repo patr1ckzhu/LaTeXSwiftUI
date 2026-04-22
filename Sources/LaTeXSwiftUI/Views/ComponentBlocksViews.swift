@@ -56,7 +56,11 @@ internal struct ComponentBlocksViews: View {
   
   /// Whether string formatting such as markdown should be ignored or rendered.
   @Environment(\.ignoreStringFormatting) private var ignoreStringFormatting
-  
+
+  /// Optional emphasis font overrides for Markdown `**bold**` / `*italic*` /
+  /// `***bold italic***` spans. See ``LaTeX/EmphasisFonts``.
+  @Environment(\.emphasisFonts) private var emphasisFonts
+
   // MARK: View body
   
   var body: some View {
@@ -92,7 +96,8 @@ internal struct ComponentBlocksViews: View {
             renderingMode: imageRenderingMode,
             errorMode: errorMode,
             blockRenderingMode: blockMode,
-            ignoreStringFormatting: ignoreStringFormatting)
+            ignoreStringFormatting: ignoreStringFormatting,
+            emphasisFonts: emphasisFonts)
         }
       }
     }

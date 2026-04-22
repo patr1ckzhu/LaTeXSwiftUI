@@ -88,10 +88,10 @@ public struct LaTeX: View {
   
   /// The view's rendering style.
   public enum RenderingStyle {
-    
+
     /// The view remains empty until its finished rendering.
     case empty
-    
+
     /// The view displays the input text until it's finished rendering.
     case original
 
@@ -101,11 +101,50 @@ public struct LaTeX: View {
 
     /// The view displays a progress view until it's finished rendering.
     case progress
-    
+
     /// The view blocks on the main thread until it's finished rendering.
     case wait
   }
-  
+
+  /// A bundle of optional emphasis fonts used to render Markdown emphasis
+  /// spans (`**bold**`, `*italic*`, `***bold italic***`) in non-math text
+  /// while preserving the primary font's `cascadeList` attribute.
+  ///
+  /// SwiftUI's default handling of emphasis runs derives bold/italic via
+  /// symbolic traits, which produces a font descriptor **without** the
+  /// primary font's `cascadeList`. When the caller relies on a cascade
+  /// for non-Latin glyphs (e.g. CJK via `Source Han Serif` or subscripts
+  /// via `Source Serif 4`), the derivation drops those fallbacks and
+  /// characters in `**bold**` runs land on the system default.
+  ///
+  /// Setting an `EmphasisFonts` value via ``LaTeX/emphasisFonts(_:)``
+  /// instructs the non-math text parser to override the `font` attribute
+  /// on each emphasis run with the explicitly supplied font (preserving
+  /// its cascade), then strip the `inlinePresentationIntent` so SwiftUI
+  /// doesn't re-derive on top of the override.
+  public struct EmphasisFonts: Equatable {
+#if os(iOS) || os(visionOS)
+    public typealias Font = UIFont
+#else
+    public typealias Font = NSFont
+#endif
+
+    /// Font used for `**bold**` runs. `nil` leaves the run untouched.
+    public let bold: Font?
+
+    /// Font used for `*italic*` runs. `nil` leaves the run untouched.
+    public let italic: Font?
+
+    /// Font used for `***bold italic***` runs. `nil` leaves the run untouched.
+    public let boldItalic: Font?
+
+    public init(bold: Font? = nil, italic: Font? = nil, boldItalic: Font? = nil) {
+      self.bold = bold
+      self.italic = italic
+      self.boldItalic = boldItalic
+    }
+  }
+
   // MARK: Static properties
   
   /// The package's shared data cache.
@@ -251,7 +290,24 @@ extension LaTeX {
       .font(Font(font))
   }
 #endif
-  
+
+  /// Sets the view's emphasis font overrides for Markdown `**bold**` /
+  /// `*italic*` / `***bold italic***` spans in non-math text.
+  ///
+  /// Use this when the primary font has a `cascadeList` (for example a
+  /// CJK fallback chain) that SwiftUI's default symbolic-trait bold/italic
+  /// derivation would otherwise strip. Any `EmphasisFonts` field left as
+  /// `nil` falls back to SwiftUI's default derivation for that emphasis
+  /// state, preserving full backward compatibility when no value is set.
+  ///
+  /// - Parameter fonts: The emphasis font bundle to inject into the
+  ///   environment. Pass `nil` (or omit the modifier) to use the default
+  ///   SwiftUI derivation.
+  /// - Returns: A view configured to honor the supplied emphasis fonts.
+  public func emphasisFonts(_ fonts: EmphasisFonts?) -> some View {
+    environment(\.emphasisFonts, fonts)
+  }
+
 }
 
 // MARK: Private methods
